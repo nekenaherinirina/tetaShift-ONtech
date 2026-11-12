@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ON Tech // ThetaShift HUD</title>
+  <style>
+    :root {
+      --bg-dark: #06090f;
+      --panel-bg: rgba(16, 24, 39, 0.75);
+      --neon-green: #00ff88;
+      --neon-cyan: #00e5ff;
+      --neon-red: #ff2a5f;
+      --border-dim: rgba(0, 229, 255, 0.25);
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
+    body {
+      margin: 0; padding: 0; background-color: var(--bg-dark); color: #fff;
+      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.08) 0%, transparent 70%),
+        linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+    }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 24px; background: rgba(10, 15, 25, 0.9);
+      border-bottom: 1px solid var(--border-dim);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+    }
+    .connection-panel { display: grid; grid-template-columns: auto minmax(220px, 1fr) auto; align-items: center; gap: 8px 12px; padding: 10px 24px; background: rgba(10, 15, 25, 0.72); border-bottom: 1px solid var(--border-dim); }
+    .connection-panel label { color: var(--neon-cyan); font-size: 12px; font-weight: 700; }
+    .connection-panel input { min-width: 0; padding: 9px 11px; border: 1px solid var(--border-dim); border-radius: 4px; outline: none; background: rgba(0, 0, 0, 0.45); color: #fff; font: 13px 'Consolas', monospace; user-select: text; -webkit-user-select: text; touch-action: auto; }
+    .connection-panel input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 229, 255, 0.2); }
+    .btn-connect { padding: 9px 14px; border: 1px solid var(--neon-green); border-radius: 4px; background: rgba(0, 255, 136, 0.1); color: var(--neon-green); font-weight: 800; cursor: pointer; }
+    .btn-connect:hover { background: rgba(0, 255, 136, 0.2); }
+    .connection-panel small { grid-column: 2 / 4; color: #8b949e; font-size: 11px; }
+    .status-badge { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: var(--neon-red); }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); transition: 0.3s; }
+    .status-badge.online { color: var(--neon-green); }
+    .status-badge.online .status-dot { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+    .brand-title { font-size: 15px; font-weight: 800; letter-spacing: 3px; background: linear-gradient(90deg, #fff, var(--neon-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .telemetry { font-family: 'Consolas', monospace; font-size: 13px; color: var(--neon-cyan); background: rgba(0, 229, 255, 0.08); padding: 4px 12px; border: 1px solid var(--border-dim); border-radius: 4px; }
+    .cockpit { flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 15px 40px; }
+    .speed-module { display: flex; align-items: center; gap: 22px; background: var(--panel-bg); padding: 18px 24px; border-radius: 16px; border: 1px solid var(--border-dim); box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 229, 255, 0.05); backdrop-filter: blur(10px); }
+    .gauge-box { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .speed-readout { font-family: 'Consolas', monospace; font-size: 24px; font-weight: 900; color: var(--neon-green); text-shadow: 0 0 12px rgba(0, 255, 136, 0.5); }
+    .slider-track { position: relative; width: 44px; height: 175px; background: rgba(0, 0, 0, 0.5); border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.15); display: flex; justify-content: center; align-items: center; }
+    input[type=range].cyber-slider { -webkit-appearance: none; width: 165px; height: 36px; background: transparent; transform: rotate(-90deg); cursor: pointer; }
+    input[type=range].cyber-slider::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #0072ff, var(--neon-cyan), var(--neon-green)); }
+    input[type=range].cyber-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #ffffff; border: 3px solid var(--neon-cyan); margin-top: -9px; box-shadow: 0 0 15px var(--neon-cyan); }
+    .presets { display: flex; flex-direction: column; gap: 12px; }
+    .btn-mode { padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(10, 15, 25, 0.8); color: #8b949e; font-weight: 700; font-size: 12px; letter-spacing: 1px; cursor: pointer; transition: all 0.15s ease; text-align: left; }
+    .btn-mode strong { display: block; font-size: 15px; color: #fff; }
+    .btn-mode.active { border-color: var(--neon-green); background: rgba(0, 255, 136, 0.12); box-shadow: 0 0 15px rgba(0, 255, 136, 0.25); color: var(--neon-green); }
+    .btn-mode.active strong { color: var(--neon-green); }
+    .dpad-ring { width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, rgba(10, 15, 25, 0.85) 75%); border: 2px solid var(--border-dim); box-shadow: 0 0 35px rgba(0, 229, 255, 0.15), inset 0 0 25px rgba(0, 0, 0, 0.8); position: relative; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+    .dpad-ring::before { content: ""; position: absolute; width: 195px; height: 195px; border-radius: 50%; border: 1px dashed rgba(0, 229, 255, 0.2); pointer-events: none; }
+    .svg-arrow { position: absolute; width: 64px; height: 64px; fill: rgba(0, 255, 136, 0.25); stroke: var(--neon-green); stroke-width: 2; transition: transform 0.08s ease, fill 0.08s ease, filter 0.08s ease; pointer-events: none; }
+    .svg-arrow.up { top: 8px; }
+    .svg-arrow.down { bottom: 8px; transform: rotate(180deg); }
+    .svg-arrow.left { left: 8px; transform: rotate(-90deg); }
+    .svg-arrow.right { right: 8px; transform: rotate(90deg); }
+    .svg-arrow.active { fill: var(--neon-cyan); stroke: #ffffff; filter: drop-shadow(0 0 14px var(--neon-cyan)); }
+    .svg-arrow.up.active { transform: scale(1.15); }
+    .svg-arrow.down.active { transform: rotate(180deg) scale(1.15); }
+    .svg-arrow.left.active { transform: rotate(-90deg) scale(1.15); }
+    .svg-arrow.right.active { transform: rotate(90deg) scale(1.15); }
+    .core-btn { width: 88px; height: 88px; border-radius: 20px; z-index: 10; background: linear-gradient(145deg, #0a192f, #004e92); border: 2px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 229, 255, 0.4), inset 0 0 12px rgba(0, 229, 255, 0.3); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: all 0.1s ease; }
+    .core-btn .logo-txt { font-weight: 900; font-size: 18px; letter-spacing: 1px; line-height: 1.05; color: #ffffff; text-shadow: 0 0 8px rgba(255, 255, 255, 0.6); }
+    .core-btn .sub-txt { font-size: 9px; font-weight: 800; letter-spacing: 1.5px; color: var(--neon-cyan); margin-top: 4px; }
+    .core-btn.stopped, .core-btn:active { background: linear-gradient(145deg, #4a0010, #ff2a5f); border-color: #ffffff; box-shadow: 0 0 30px var(--neon-red); transform: scale(0.93); }
+    .core-btn.stopped .sub-txt { color: #ffffff; }
+    @media (max-width: 700px) {
+      body { height: auto; min-height: 100vh; overflow-x: hidden; overflow-y: auto; }
+      header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+      .brand-title { order: -1; flex-basis: 100%; text-align: center; }
+      .telemetry { font-size: 11px; padding: 4px 8px; }
+      .connection-panel { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 12px; }
+      .connection-panel label { grid-column: 1 / -1; }
+      .connection-panel small { grid-column: 1 / -1; }
+      .cockpit { flex-direction: column; justify-content: center; gap: 24px; padding: 24px 12px; }
+      .speed-module { max-width: 100%; gap: 12px; padding: 12px; }
+      .dpad-ring { width: 220px; height: 220px; flex: 0 0 auto; }
+      .dpad-ring::before { width: 165px; height: 165px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="status-badge" id="ws-status">
+      <div class="status-dot"></div>
+      <span id="status-text">OFFLINE</span>
+    </div>
+    <div class="brand-title">ON TECH // THETASHIFT</div>
+    <div class="telemetry" id="debug">SYS READY | PWR 65%</div>
+  </header>
+
+  <form class="connection-panel" id="connection-form">
+    <label for="ws-url">Adresse WebSocket ESP32</label>
+    <input id="ws-url" type="url" placeholder="ws://192.168.4.1:81/" autocomplete="url" spellcheck="false">
+    <button class="btn-connect" type="submit">CONNECTER</button>
+    <small>Utilise l’adresse, le port et le chemin configurés dans le firmware.</small>
+  </form>
+
+  <div class="cockpit">
+    <div class="speed-module">
+      <div class="gauge-box">
+        <div class="speed-readout" id="speed-display">65%</div>
+        <div class="slider-track">
+          <input type="range" min="15" max="100" value="65" class="cyber-slider" id="speed-slider">
+        </div>
+      </div>
+      <div class="presets">
+        <button class="btn-mode" data-speed="30"><strong>30%</strong>PRÉCISION</button>
+        <button class="btn-mode active" data-speed="65"><strong>65%</strong>COURSE</button>
+        <button class="btn-mode" data-speed="100"><strong>100%</strong>TURBO SABLE</button>
+      </div>
+    </div>
+
+    <div class="dpad-ring" id="dpad">
+      <svg class="svg-arrow up" id="arr-up" viewBox="0 0 100 100">
+        <polygon points="50,12 88,78 50,62 12,78" />
+      </svg>
+      <svg class="svg-arrow down" id="arr-down" viewBox="0 0 100 100">
+        <polygon points="50,12 88,78 50,62 12,78" />
+      </svg>
+      <svg class="svg-arrow left" id="arr-left" viewBox="0 0 100 100">
+        <polygon points="50,12 88,78 50,62 12,78" />
+      </svg>
+      <svg class="svg-arrow right" id="arr-right" viewBox="0 0 100 100">
+        <polygon points="50,12 88,78 50,62 12,78" />
+      </svg>
+
+      <div class="core-btn" id="stop-btn">
+        <div class="logo-txt">ON<br>Tech</div>
+        <div class="sub-txt">KILL SWITCH</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws;
+    const statusBadge = document.getElementById('ws-status');
+    const statusText = document.getElementById('status-text');
+    const debugEl = document.getElementById('debug');
+    const connectionForm = document.getElementById('connection-form');
+    const wsUrlInput = document.getElementById('ws-url');
+    const slider = document.getElementById('speed-slider');
+    const speedDisplay = document.getElementById('speed-display');
+    const dpad = document.getElementById('dpad');
+    const stopBtn = document.getElementById('stop-btn');
+    const presetBtns = document.querySelectorAll('.btn-mode');
+
+    const arrUp = document.getElementById('arr-up');
+    const arrDown = document.getElementById('arr-down');
+    const arrLeft = document.getElementById('arr-left');
+    const arrRight = document.getElementById('arr-right');
+
+    let reconnectTimer;
+    let savedWsUrl = '';
+      try {
+      savedWsUrl = localStorage.getItem('esp32-ws-url') || '';
+    } catch (e) {}
+    const pageHost = window.location.hostname;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const pageWsUrl = pageHost && pageHost !== 'localhost' && pageHost !== '127.0.0.1'
+      ? `${wsProtocol}//${window.location.host}/ws`
+      : '';
+    wsUrlInput.value = savedWsUrl || pageWsUrl;
+
+    function setConnectionStatus(message, online = false) {
+      statusBadge.classList.toggle('online', online);
+      statusText.textContent = message;
+    }
+
+    function connectWS(url) {
+      clearTimeout(reconnectTimer);
+      if (ws) {
+        ws.onclose = null;
+        ws.close();
+      }
+
+      setConnectionStatus('CONNEXION...');
+      try {
+        const socket = new WebSocket(url);
+        ws = socket;
+        socket.onopen = () => {
+          if (ws === socket) setConnectionStatus('CONNECTÉ', true);
+        };
+        socket.onerror = () => {
+          if (ws === socket) setConnectionStatus('ERREUR DE CONNEXION');
+        };
+        socket.onclose = () => {
+          if (ws !== socket) return;
+          ws = null;
+          setConnectionStatus('HORS LIGNE · NOUVEL ESSAI');
+          reconnectTimer = setTimeout(() => connectWS(url), 2000);
+        };
+      } catch (e) {
+        ws = null;
+        setConnectionStatus('URL INVALIDE');
+      }
+    }
+
+    connectionForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const url = wsUrlInput.value.trim();
+      try {
+        const parsedUrl = new URL(url);
+        if (!['ws:', 'wss:'].includes(parsedUrl.protocol)) throw new Error('Invalid protocol');
+        const normalizedUrl = parsedUrl.toString();
+        wsUrlInput.value = normalizedUrl;
+        try {
+          localStorage.setItem('esp32-ws-url', normalizedUrl);
+        } catch (e) {}
+        connectWS(normalizedUrl);
+      } catch (e) {
+        setConnectionStatus('URL INVALIDE');
+      }
+    }
+    );
+
+    if (wsUrlInput.value) connectWS(wsUrlInput.value);
+    else setConnectionStatus('CONFIGUREZ L’ESP32');
+
+    let speed = 65, dirX = 0, dirY = 0, lastSend = 0, isMouseDown = false;
+
+    slider.addEventListener('input', (e) => {
+      speed = parseInt(e.target.value, 10);
+      speedDisplay.textContent = `${speed}%`;
+      presetBtns.forEach(b => b.classList.remove('active'));
+      sendState(true);
+    });
+
+presetBtns.forEach((btn) => {
+btn.addEventListener('click', () => {
+speed = parseInt(btn.dataset.speed, 10);
+slider.value = speed;
+speedDisplay.textContent = `${speed}%`;
+presetBtns.forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+if (navigator.vibrate) navigator.vibrate(25);
+sendState(true);
+});
+});
+function sendState(force = false) {
+let dirText = 'HOLD';
+if (dirY > 25 && dirX > 25) dirText = 'FWD-RIGHT';
+else if (dirY > 25 && dirX < -25) dirText = 'FWD-LEFT';
+else if (dirY < -25 && dirX > 25) dirText = 'REV-RIGHT';
+else if (dirY < -25 && dirX < -25) dirText = 'REV-LEFT';
+else if (dirY > 25) dirText = 'FORWARD';
+else if (dirY < -25) dirText = 'REVERSE';
+else if (dirX > 25) dirText = 'RIGHT';
+else if (dirX < -25) dirText = 'LEFT';
+debugEl.textContent = `${dirText} [${dirX},${dirY}] | PWR ${speed}%`;
+const now = Date.now();
+if (!force && now - lastSend < 30) return;
+lastSend = now;
+if (ws && ws.readyState === WebSocket.OPEN) {
+ws.send(JSON.stringify({ x: dirX, y: dirY, s: speed }));
+}
+}
+function updateVisuals(x, y) {
+arrUp.classList.toggle('active', y > 25);
+arrDown.classList.toggle('active', y < -25);
+arrRight.classList.toggle('active', x > 25);
+arrLeft.classList.toggle('active', x < -25);
+}
+function processPoint(clientX, clientY) {
+const rect = dpad.getBoundingClientRect();
+const dx = clientX - (rect.left + rect.width / 2);
+const dy = clientY - (rect.top + rect.height / 2);
+const maxR = rect.width / 2;
+if (Math.hypot(dx, dy) < 42) {
+dirX = 0;
+dirY = 0;
+} else {
+dirX = Math.max(-100, Math.min(100, Math.round((dx / maxR) * 100)));
+dirY = Math.max(-100, Math.min(100, Math.round(-(dy / maxR) * 100)));
+}
+updateVisuals(dirX, dirY);
+sendState();
+}
+function resetDpad() {
+dirX = 0;
+dirY = 0;
+updateVisuals(0, 0);
+sendState(true);
+}
+dpad.addEventListener('touchstart', (e) => {
+if (stopBtn.contains(e.target)) return;
+e.preventDefault();
+if (navigator.vibrate) navigator.vibrate(15);
+const touch = Array.from(e.touches).find(t => dpad.contains(t.target));
+if (touch) processPoint(touch.clientX, touch.clientY);
+});
+dpad.addEventListener('touchmove', (e) => {
+if (stopBtn.contains(e.target)) return;
+e.preventDefault();
+const touch = Array.from(e.touches).find(t => dpad.contains(t.target));
+if (touch) processPoint(touch.clientX, touch.clientY);
+});
+dpad.addEventListener('touchend', (e) => {
+e.preventDefault();
+resetDpad();
+});
+dpad.addEventListener('mousedown', (e) => {
+if (stopBtn.contains(e.target)) return;
+isMouseDown = true;
+processPoint(e.clientX, e.clientY);
+});
+window.addEventListener('mousemove', (e) => {
+if (!isMouseDown) return;
+processPoint(e.clientX, e.clientY);
+});
+window.addEventListener('mouseup', () => {
+if (isMouseDown) {
+isMouseDown = false;
+resetDpad();
+}
+});
+function triggerStop(e) {
+e.stopPropagation();
+isMouseDown = false;
+dirX = 0;
+dirY = 0;
+updateVisuals(0, 0);
+stopBtn.classList.add('stopped');
+debugEl.textContent = `EMERGENCY HALT | PWR ${speed}%`;
+if (navigator.vibrate) navigator.vibrate(150);
+setTimeout(() => stopBtn.classList.remove('stopped'), 350);
+if (ws && ws.readyState === WebSocket.OPEN) {
+ws.send(JSON.stringify({ x: 0, y: 0, s: 0, stop: 1 }));
+}
+}
+stopBtn.addEventListener('click', triggerStop);
+  </script>
+</body>
+</html>
